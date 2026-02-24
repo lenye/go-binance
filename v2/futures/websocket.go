@@ -3,6 +3,7 @@ package futures
 import (
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -55,7 +56,7 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 		// closed by the client.
 		defer close(doneC)
 		if WebsocketKeepalive {
-			keepAlive(c, WebsocketTimeout)
+			keepAlive(doneC, c, WebsocketTimeout)
 		}
 		// Wait for the stopC channel to be closed.  We do that in a
 		// separate goroutine because ReadMessage is a blocking
@@ -83,10 +84,10 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 	return
 }
 
-func keepAlive(c *websocket.Conn, timeout time.Duration) {
-	ticker := time.NewTicker(timeout)
+func keepAlive(done chan struct{}, c *websocket.Conn, timeout time.Duration) {
 
-	lastResponse := time.Now()
+	var lastResponse atomic.Int64
+	lastResponse.Store(time.Now().UnixMilli())
 
 	c.SetPingHandler(func(pingData string) error {
 		// Respond with Pong using the server's PING payload
@@ -99,18 +100,26 @@ func keepAlive(c *websocket.Conn, timeout time.Duration) {
 			return err
 		}
 
-		lastResponse = time.Now()
+		lastResponse.Store(time.Now().UnixMilli())
 
 		return nil
 	})
 
+	ticker := time.NewTicker(timeout)
+
 	go func() {
 		defer ticker.Stop()
 		for {
-			<-ticker.C
-			if time.Since(lastResponse) > timeout {
-				c.Close()
+			select {
+			case <-done:
 				return
+			case <-ticker.C:
+				last := lastResponse.Load()
+				if time.Since(time.UnixMilli(last)) > timeout {
+					c.Close()
+					return
+				}
+
 			}
 		}
 	}()
