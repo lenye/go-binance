@@ -55,7 +55,11 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 		// This function will exit either on error from
 		// websocket.Conn.ReadMessage or when the stopC channel is
 		// closed by the client.
-		defer close(doneC)
+		// defer close(doneC)
+		defer func() {
+			close(doneC)
+			log.Println("wsServe done closed)")
+		}()
 		if WebsocketKeepalive {
 			keepAlive(doneC, c, WebsocketTimeout)
 		}
@@ -70,6 +74,7 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 			case <-doneC:
 			}
 			c.Close()
+			log.Println("wsServe websocket.Conn.Closed")
 		}()
 		for {
 			_, message, err := c.ReadMessage()
@@ -85,7 +90,7 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 	return
 }
 
-func keepAlive(done chan struct{}, c *websocket.Conn, timeout time.Duration) {
+func keepAlive(doneC chan struct{}, c *websocket.Conn, timeout time.Duration) {
 
 	var lastResponse atomic.Int64
 	lastResponse.Store(time.Now().UnixMilli())
@@ -112,8 +117,8 @@ func keepAlive(done chan struct{}, c *websocket.Conn, timeout time.Duration) {
 		defer ticker.Stop()
 		for {
 			select {
-			case <-done:
-				log.Println("keepAlive done")
+			case <-doneC:
+				log.Println("wsServe keepAlive done")
 				return
 			case <-ticker.C:
 				last := lastResponse.Load()
