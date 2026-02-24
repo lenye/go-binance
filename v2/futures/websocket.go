@@ -1,6 +1,7 @@
 package futures
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"sync/atomic"
@@ -112,6 +113,7 @@ func keepAlive(done chan struct{}, c *websocket.Conn, timeout time.Duration) {
 		for {
 			select {
 			case <-done:
+				log.Println("keepAlive done")
 				return
 			case <-ticker.C:
 				last := lastResponse.Load()
