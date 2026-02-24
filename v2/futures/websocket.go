@@ -58,7 +58,7 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 		// defer close(doneC)
 		defer func() {
 			close(doneC)
-			log.Println("wsServe done closed)")
+			log.Println("wsServe done closed")
 		}()
 		if WebsocketKeepalive {
 			keepAlive(doneC, c, WebsocketTimeout)
@@ -96,6 +96,7 @@ func keepAlive(doneC chan struct{}, c *websocket.Conn, timeout time.Duration) {
 	lastResponse.Store(time.Now().UnixMilli())
 
 	c.SetPingHandler(func(pingData string) error {
+		log.Println("wsServe PingHandler")
 		// Respond with Pong using the server's PING payload
 		err := c.WriteControl(
 			websocket.PongMessage,
@@ -103,6 +104,7 @@ func keepAlive(doneC chan struct{}, c *websocket.Conn, timeout time.Duration) {
 			time.Now().Add(WebsocketPongTimeout), // Short deadline to ensure timely response
 		)
 		if err != nil {
+			log.Println("wsServe PingHandler failed:", err)
 			return err
 		}
 
