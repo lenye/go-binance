@@ -79,6 +79,7 @@ var wsServe = func(cfg *WsConfig, handler WsHandler, errHandler ErrHandler) (don
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
+				log.Printf("wsServe ReadMessage failed: %s", err)
 				if !silent {
 					errHandler(err)
 				}
@@ -104,7 +105,7 @@ func keepAlive(doneC chan struct{}, c *websocket.Conn, timeout time.Duration) {
 			time.Now().Add(WebsocketPongTimeout), // Short deadline to ensure timely response
 		)
 		if err != nil {
-			log.Println("wsServe PingHandler failed:", err)
+			log.Printf("wsServe PingHandler failed: %s", err)
 			return err
 		}
 
