@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -1147,6 +1148,9 @@ type WsUserDataConditionalOrderTriggerReject struct {
 }
 
 func (e *WsUserDataEvent) UnmarshalJSON(data []byte) error {
+
+	log.Println("WsUserDataEvent: " + string(data))
+
 	j, err := newJSON(data)
 	if err != nil {
 		return err
