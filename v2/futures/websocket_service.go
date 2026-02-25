@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -1050,35 +1049,41 @@ func WsCompositiveIndexServe(symbol string, handler WsCompositeIndexHandler, err
 	return wsServe(cfg, wsHandler, errHandler)
 }
 
-// WsUserDataEvent define user data event
-type WsUserDataEvent struct {
+type WsUserDataEventBase struct {
 	Event           UserDataEventType `json:"e"`
 	Time            int64             `json:"E"`
 	TransactionTime int64             `json:"T"`
+}
+
+// WsUserDataEvent define user data event
+type WsUserDataEvent struct {
+	WsUserDataEventBase
 
 	// listenKeyExpired only have Event and Time
 	//
 
+	// 不能使用嵌入字段，字段有重
+
 	// MARGIN_CALL
-	WsUserDataMarginCall
+	WsUserDataMarginCall WsUserDataMarginCall
 
 	// ACCOUNT_UPDATE
-	WsUserDataAccountUpdate
+	WsUserDataAccountUpdate WsUserDataAccountUpdate
 
 	// ORDER_TRADE_UPDATE
-	WsUserDataOrderTradeUpdate
+	WsUserDataOrderTradeUpdate WsUserDataOrderTradeUpdate
 
 	// ACCOUNT_CONFIG_UPDATE
-	WsUserDataAccountConfigUpdate
+	WsUserDataAccountConfigUpdate WsUserDataAccountConfigUpdate
 
 	// TRADE_LITE
-	WsUserDataTradeLite
+	WsUserDataTradeLite WsUserDataTradeLite
 
 	// CONDITIONAL_ORDER_TRIGGER_REJECT
-	WsUserDataConditionalOrderTriggerReject
+	WsUserDataConditionalOrderTriggerReject WsUserDataConditionalOrderTriggerReject
 
 	// ALGO_UPDATE
-	WsUserDataAlgoUpdate
+	WsUserDataAlgoUpdate WsUserDataAlgoUpdate
 }
 
 type WsUserDataAlgoUpdate struct {
@@ -1149,16 +1154,8 @@ type WsUserDataConditionalOrderTriggerReject struct {
 
 func (e *WsUserDataEvent) UnmarshalJSON(data []byte) error {
 
-	log.Println("WsUserDataEvent: " + string(data))
-
-	j, err := newJSON(data)
-	if err != nil {
-		return err
-	}
-	e.Event = UserDataEventType(j.Get("e").MustString())
-	e.Time = j.Get("E").MustInt64()
-	if v, ok := j.CheckGet("T"); ok {
-		e.TransactionTime = v.MustInt64()
+	if err := json.Unmarshal(data, &e.WsUserDataEventBase); err != nil {
+		return fmt.Errorf("unmarshal base failed: %w", err)
 	}
 
 	// use standard json unmarshal for event types
