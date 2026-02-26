@@ -1154,33 +1154,38 @@ type WsUserDataConditionalOrderTriggerReject struct {
 
 func (e *WsUserDataEvent) UnmarshalJSON(data []byte) error {
 
+	// 拿基础字段
 	if err := json.Unmarshal(data, &e.WsUserDataEventBase); err != nil {
 		return fmt.Errorf("unmarshal base failed: %w", err)
 	}
 
-	// use standard json unmarshal for event types
-	eventMaps := map[UserDataEventType]any{
-		UserDataEventTypeMarginCall:                    &e.WsUserDataMarginCall,
-		UserDataEventTypeAccountUpdate:                 &e.WsUserDataAccountUpdate,
-		UserDataEventTypeOrderTradeUpdate:              &e.WsUserDataOrderTradeUpdate,
-		UserDataEventTypeAccountConfigUpdate:           &e.WsUserDataAccountConfigUpdate,
-		UserDataEventTypeConditionalOrderTriggerReject: &e.WsUserDataConditionalOrderTriggerReject,
-		UserDataEventTypeTradeLite:                     &e.WsUserDataTradeLite,
-		UserDataEventTypeAlgoUpdate:                    &e.WsUserDataAlgoUpdate,
-	}
-
-	// ignore event types, No additional data
-	ignoreEventTypes := map[UserDataEventType]struct{}{
-		UserDataEventTypeListenKeyExpired: {},
-	}
-
-	if v, ok := eventMaps[e.Event]; ok {
-		return json.Unmarshal(data, v)
-	} else if _, ok := ignoreEventTypes[e.Event]; ok {
+	// 根据 Event 类型分发
+	var err error
+	switch e.Event {
+	case UserDataEventTypeListenKeyExpired:
 		return nil
+	case UserDataEventTypeMarginCall:
+		err = json.Unmarshal(data, &e.WsUserDataMarginCall)
+	case UserDataEventTypeAccountUpdate:
+		err = json.Unmarshal(data, &e.WsUserDataAccountUpdate)
+	case UserDataEventTypeOrderTradeUpdate:
+		err = json.Unmarshal(data, &e.WsUserDataOrderTradeUpdate)
+	case UserDataEventTypeAccountConfigUpdate:
+		err = json.Unmarshal(data, &e.WsUserDataAccountConfigUpdate)
+	case UserDataEventTypeTradeLite:
+		err = json.Unmarshal(data, &e.WsUserDataTradeLite)
+	case UserDataEventTypeConditionalOrderTriggerReject:
+		err = json.Unmarshal(data, &e.WsUserDataConditionalOrderTriggerReject)
+	case UserDataEventTypeAlgoUpdate:
+		err = json.Unmarshal(data, &e.WsUserDataAlgoUpdate)
+	default:
+		return fmt.Errorf("unexpected event type: %v", e.Event)
 	}
 
-	return fmt.Errorf("unexpected event type: %v", e.Event)
+	if err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %w", err)
+	}
+	return nil
 }
 
 // WsAccountUpdate define account update
