@@ -1055,6 +1055,8 @@ type WsUserDataEventBase struct {
 	TransactionTime int64             `json:"T"`
 }
 
+type WsUserDataEventBase_ WsUserDataEventBase
+
 // WsUserDataEvent define user data event
 type WsUserDataEvent struct {
 	WsUserDataEventBase
@@ -1065,25 +1067,25 @@ type WsUserDataEvent struct {
 	// 字段阴影 (Shadowing) 风险，不能使用嵌入字段
 
 	// MARGIN_CALL
-	WsUserDataMarginCall WsUserDataMarginCall
+	WsUserDataMarginCall *WsUserDataMarginCall
 
 	// ACCOUNT_UPDATE
-	WsUserDataAccountUpdate WsUserDataAccountUpdate
+	WsUserDataAccountUpdate *WsUserDataAccountUpdate
 
 	// ORDER_TRADE_UPDATE
-	WsUserDataOrderTradeUpdate WsUserDataOrderTradeUpdate
+	WsUserDataOrderTradeUpdate *WsUserDataOrderTradeUpdate
 
 	// ACCOUNT_CONFIG_UPDATE
-	WsUserDataAccountConfigUpdate WsUserDataAccountConfigUpdate
+	WsUserDataAccountConfigUpdate *WsUserDataAccountConfigUpdate
 
 	// TRADE_LITE
-	WsUserDataTradeLite WsUserDataTradeLite
+	WsUserDataTradeLite *WsUserDataTradeLite
 
 	// CONDITIONAL_ORDER_TRIGGER_REJECT
-	WsUserDataConditionalOrderTriggerReject WsUserDataConditionalOrderTriggerReject
+	WsUserDataConditionalOrderTriggerReject *WsUserDataConditionalOrderTriggerReject
 
 	// ALGO_UPDATE
-	WsUserDataAlgoUpdate WsUserDataAlgoUpdate
+	WsUserDataAlgoUpdate *WsUserDataAlgoUpdate
 }
 
 type WsUserDataAlgoUpdate struct {
@@ -1154,10 +1156,15 @@ type WsUserDataConditionalOrderTriggerReject struct {
 
 func (e *WsUserDataEvent) UnmarshalJSON(data []byte) error {
 
-	// 拿基础字段
-	if err := json.Unmarshal(data, &e.WsUserDataEventBase); err != nil {
+	// 基础字段
+	var base WsUserDataEventBase_
+	if err := json.Unmarshal(data, &base); err != nil {
 		return fmt.Errorf("unmarshal base failed: %w", err)
 	}
+
+	e.Event = base.Event
+	e.Time = base.Time
+	e.TransactionTime = base.TransactionTime
 
 	// 根据 Event 类型分发
 	var err error
@@ -1165,19 +1172,26 @@ func (e *WsUserDataEvent) UnmarshalJSON(data []byte) error {
 	case UserDataEventTypeListenKeyExpired:
 		return nil
 	case UserDataEventTypeMarginCall:
-		err = json.Unmarshal(data, &e.WsUserDataMarginCall)
+		e.WsUserDataMarginCall = new(WsUserDataMarginCall)
+		err = json.Unmarshal(data, e.WsUserDataMarginCall)
 	case UserDataEventTypeAccountUpdate:
-		err = json.Unmarshal(data, &e.WsUserDataAccountUpdate)
+		e.WsUserDataAccountUpdate = new(WsUserDataAccountUpdate)
+		err = json.Unmarshal(data, e.WsUserDataAccountUpdate)
 	case UserDataEventTypeOrderTradeUpdate:
-		err = json.Unmarshal(data, &e.WsUserDataOrderTradeUpdate)
+		e.WsUserDataOrderTradeUpdate = new(WsUserDataOrderTradeUpdate)
+		err = json.Unmarshal(data, e.WsUserDataOrderTradeUpdate)
 	case UserDataEventTypeAccountConfigUpdate:
-		err = json.Unmarshal(data, &e.WsUserDataAccountConfigUpdate)
+		e.WsUserDataAccountConfigUpdate = new(WsUserDataAccountConfigUpdate)
+		err = json.Unmarshal(data, e.WsUserDataAccountConfigUpdate)
 	case UserDataEventTypeTradeLite:
-		err = json.Unmarshal(data, &e.WsUserDataTradeLite)
+		e.WsUserDataTradeLite = new(WsUserDataTradeLite)
+		err = json.Unmarshal(data, e.WsUserDataTradeLite)
 	case UserDataEventTypeConditionalOrderTriggerReject:
-		err = json.Unmarshal(data, &e.WsUserDataConditionalOrderTriggerReject)
+		e.WsUserDataConditionalOrderTriggerReject = new(WsUserDataConditionalOrderTriggerReject)
+		err = json.Unmarshal(data, e.WsUserDataConditionalOrderTriggerReject)
 	case UserDataEventTypeAlgoUpdate:
-		err = json.Unmarshal(data, &e.WsUserDataAlgoUpdate)
+		e.WsUserDataAlgoUpdate = new(WsUserDataAlgoUpdate)
+		err = json.Unmarshal(data, e.WsUserDataAlgoUpdate)
 	default:
 		return fmt.Errorf("unexpected event type: %v", e.Event)
 	}
