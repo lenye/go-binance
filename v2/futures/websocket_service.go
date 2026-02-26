@@ -1062,7 +1062,7 @@ type WsUserDataEvent struct {
 	// listenKeyExpired only have Event and Time
 	//
 
-	// 不能使用嵌入字段，字段有重
+	// 字段阴影 (Shadowing) 风险，不能使用嵌入字段
 
 	// MARGIN_CALL
 	WsUserDataMarginCall WsUserDataMarginCall
